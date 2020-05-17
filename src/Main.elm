@@ -352,35 +352,47 @@ cardView model player ( col, row ) =
         ( backgroundColor, foregroundColor ) =
             case getCurrentPlayer model of
                 Just currentPlayer ->
-                    if
-                        model.state
-                            == WaitForReplaceOperation
-                            && currentPlayer.name
-                            == player.name
-                            && model.cardFromTheHand
-                            == maybeInGameCard
-                            && maybeInGameCard
-                            /= Nothing
-                    then
-                        ( rgb255 0 0 0, rgb255 255 255 255 )
+                    case model.state of
+                        Examining ->
+                            if row == 1 && player.playerType == Human then
+                                ( rgb255 255 255 255, rgb255 0 0 200 )
 
-                    else if model.state == Finished then
-                        ( rgb255 255 255 255, rgb255 0 0 0 )
+                            else
+                                ( rgb255 255 255 255, rgb255 200 200 200 )
 
-                    else if row == 1 && player.playerType == Human && model.state == Examining then
-                        ( rgb255 255 255 255, rgb255 0 0 200 )
+                        WaitForReplaceOperation ->
+                            if
+                                currentPlayer.name
+                                    == player.name
+                                    && model.cardFromTheHand
+                                    == maybeInGameCard
+                                    && maybeInGameCard
+                                    /= Nothing
+                            then
+                                ( rgb255 0 0 0, rgb255 255 255 255 )
 
-                    else if model.state == Examining then
-                        ( rgb255 255 255 255, rgb255 200 200 200 )
+                            else if currentPlayer.name == player.name then
+                                ( rgb255 255 255 255, rgb255 0 0 0 )
 
-                    else if player.playerType == Human && model.state == TrashPhase then
-                        ( rgb255 255 255 255, rgb255 0 0 0 )
+                            else
+                                ( rgb255 255 255 255, rgb255 200 200 200 )
 
-                    else if currentPlayer.name /= player.name then
-                        ( rgb255 255 255 255, rgb255 200 200 200 )
+                        TrashPhase ->
+                            if player.playerType == Human then
+                                ( rgb255 255 255 255, rgb255 0 0 0 )
 
-                    else
-                        ( rgb255 255 255 255, rgb255 0 0 0 )
+                            else
+                                ( rgb255 255 255 255, rgb255 200 200 200 )
+
+                        Finished ->
+                            ( rgb255 255 255 255, rgb255 0 0 0 )
+
+                        _ ->
+                            if currentPlayer.name /= player.name then
+                                ( rgb255 255 255 255, rgb255 200 200 200 )
+
+                            else
+                                ( rgb255 255 255 255, rgb255 0 0 0 )
 
                 _ ->
                     ( rgb255 255 255 255, rgb255 0 0 0 )
@@ -845,27 +857,6 @@ chooseReplacement model =
     newModel
 
 
-trashSameCardsForPlayer : Player -> Model -> List Card -> ( Player, List Card )
-trashSameCardsForPlayer player model discard =
-    case List.head discard of
-        Just discardTop ->
-            let
-                cardsToKeep =
-                    List.filter (\inGameCard -> inGameCard.card.figure /= discardTop.figure || not inGameCard.known) player.cards
-
-                rejected =
-                    List.filter (\inGameCard -> inGameCard.card.figure == discardTop.figure && inGameCard.known) player.cards
-                        |> List.map (\inGameCard -> inGameCard.card)
-
-                newDiscard =
-                    List.concat [ rejected, discard ]
-            in
-            ( { player | cards = cardsToKeep }, newDiscard )
-
-        Nothing ->
-            ( player, discard )
-
-
 isCactusPlayer : Player -> Model -> Bool
 isCactusPlayer player model =
     getCactusPlayerIndex player 0 model.cactusPlayers /= Nothing
@@ -897,6 +888,26 @@ setNextPlayer model =
     in
     { newModel | currentPlayerIndex = nextPlayerIndex }
         |> addMessage text
+
+
+trashSameCardsForPlayer : Player -> Model -> List Card -> ( Player, List Card )
+trashSameCardsForPlayer player model discard =
+    case List.head discard of
+        Just discardTop ->
+            let
+                ( cardsToKeep, cardsToReject ) =
+                    List.partition (\inGameCard -> inGameCard.card.figure /= discardTop.figure || not inGameCard.known) player.cards
+
+                inGameCardsToReject =
+                    List.map .card cardsToReject
+
+                newDiscard =
+                    List.concat [ inGameCardsToReject, discard ]
+            in
+            ( { player | cards = cardsToKeep }, newDiscard )
+
+        Nothing ->
+            ( player, discard )
 
 
 trashBotCards : Model -> Model
