@@ -364,6 +364,9 @@ cardView model player ( col, row ) =
                     then
                         ( rgb255 0 0 0, rgb255 255 255 255 )
 
+                    else if model.state == Finished then
+                        ( rgb255 255 255 255, rgb255 0 0 0 )
+
                     else if row == 1 && player.playerType == Human && model.state == Examining then
                         ( rgb255 255 255 255, rgb255 0 0 200 )
 
