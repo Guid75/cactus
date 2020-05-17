@@ -28,17 +28,23 @@ module.exports = (env, options) => ({
       {
         test: /\.elm$/,
         exclude: [/elm-stuff/, /node_modules/],
-        use: {
-          loader: 'elm-webpack-loader',
-        options: {}
-        }
+        use: [
+          { loader: 'elm-hot-webpack-loader' },
+          {
+            loader: 'elm-webpack-loader',
+            options: {
+              cwd: __dirname
+            }
+          }
+        ]
       }
     ]
   },
   devServer: {
     contentBase: path.join(__dirname, 'dist'),
     compress: true,
-    port: 9000
+    port: 9000,
+    hot: true
   },
   plugins: [
     new HtmlWebpackPlugin({
